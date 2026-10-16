@@ -1,0 +1,84 @@
+# Local business profile for upstream DeerFlow v2.1.0 (config schema 45).
+# Copy to vendor/deer-flow/config.yaml via scripts/local.ps1 Setup.
+# Provider/model names checked against DeepSeek official docs on 2026-10-11.
+config_version: 45
+log_level: info
+
+models:
+  - name: deepseek-flash
+    display_name: DeepSeek Flash
+    use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+    model: deepseek-flash
+    api_base: https://api.deepseek.com
+    api_key: $DEEPSEEK_API_KEY
+    timeout: 120.0
+    stream_chunk_timeout: 120.0
+    max_retries: 0
+    max_tokens: 4096
+    context_window: 1000000
+    supports_thinking: true
+    # Image handling is deferred until the damage-evidence phase.
+    supports_vision: false
+    extra_body:
+      thinking:
+        type: disabled
+    when_thinking_enabled:
+      extra_body:
+        thinking:
+          type: enabled
+    when_thinking_disabled:
+      extra_body:
+        thinking:
+          type: disabled
+
+token_usage:
+  enabled: true
+# These upstream controls bound a run approximately; they are not a currency
+# budget. A model call can cross the threshold before enforcement takes effect.
+token_budget:
+  enabled: true
+  max_tokens: 20000
+  warn_threshold: 0.8
+  hard_stop_threshold: 1.0
+# Graph hooks consume steps as well as model/tool nodes; 50 cannot complete
+# four responses in the pinned 26-middleware chain. Token budget stays 20,000.
+recursion_limit: 100
+max_recursion_limit: 100
+llm_call:
+  max_concurrent_calls: 1
+  retry_max_attempts: 1
+
+sandbox:
+  use: deerflow.sandbox.local:LocalSandboxProvider
+  allow_host_bash: false
+skills:
+  path: /app/after-sales-skills
+  container_path: /mnt/skills
+  deferred_discovery: false
+
+plugins:
+  - name: after-sales
+    use: after_sales.plugin:install
+    enabled: true
+    required: true
+
+# This local profile is scoped to after-sales. The extension filters model-visible
+# tools and denies calls outside the business allowlist; the host still provides
+# the agent loop, date context, Skills projection and MCP transport.
+tool_groups:
+  - name: file:read
+tools:
+  - name: read_file
+    group: file:read
+    use: deerflow.sandbox.tools:read_file_tool
+
+# Keep auxiliary model calls off. The project-owned confirmed-preference
+# adapter uses a separate no-model DeerMem instance, not passive extraction.
+title:
+  enabled: false
+input_polish:
+  enabled: false
+suggestions:
+  enabled: false
+memory:
+  enabled: false

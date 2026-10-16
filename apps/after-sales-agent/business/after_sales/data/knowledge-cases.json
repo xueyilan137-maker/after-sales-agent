@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "data_kind": "synthetic_design_example",
+  "cases": [
+    {"case_id": "CASE-DAMAGE-INFO", "case_kind": "damage", "title": "已提供损坏描述，缺少证据与处理偏好", "text": "保留已知资料，集中询问证据说明及退款或补发偏好；只有后端生成方案后才进入人工审批。", "policy_id": "damage-demo-v1", "clause_ids": ["DAMAGE-02", "DAMAGE-04"]},
+    {"case_id": "CASE-DAMAGE-LATE", "case_kind": "damage", "title": "超过七天后的首次损坏申报", "text": "按系统首次申报核对期限；超期转人工，不通过修改申报时间重放原工单。新演示使用独立实例。", "policy_id": "damage-demo-v1", "clause_ids": ["DAMAGE-01"]},
+    {"case_id": "CASE-SHIPPING-STALLED", "case_kind": "logistics", "title": "物流运输中超过 72 小时未更新", "text": "引用物流事件和政策，经人工审批登记合成物流调查，等待跟进；调查登记不代表送达。", "policy_id": "logistics-demo-v1", "clause_ids": ["LOGISTICS-01", "LOGISTICS-02"]},
+    {"case_id": "CASE-SHIPPING-CONFLICT", "case_kind": "logistics", "title": "显示签收但客户反馈没有收到", "text": "保留物流记录与客户陈述的冲突，转人工核验；不自动选择退款或补发。", "policy_id": "logistics-demo-v1", "clause_ids": ["LOGISTICS-01"]}
+  ]
+}

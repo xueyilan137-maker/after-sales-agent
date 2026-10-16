@@ -1,0 +1,53 @@
+# Overlay on vendor/deer-flow/docker/docker-compose-dev.yaml.
+# Use scripts/local.ps1 so both host roots are absolute and the project is named.
+services:
+  gateway:
+    build:
+      # Generated from the pinned upstream Dockerfile by local.ps1.
+      dockerfile: ${AFTER_SALES_APP_ROOT}/.local/backend.Dockerfile
+    environment:
+      AFTER_SALES_DATA_DIR: /app/after-sales-data
+      AFTER_SALES_ENABLE_VERIFICATION: ${AFTER_SALES_ENABLE_VERIFICATION:-false}
+      DEER_FLOW_DATE_TIMEZONE: Asia/Shanghai
+    volumes:
+      - type: bind
+        source: ${AFTER_SALES_APP_ROOT:?Run scripts/local.ps1}/mcp_server
+        target: /app/business-mcp
+        read_only: true
+      - type: bind
+        source: ${AFTER_SALES_APP_ROOT}/business/after_sales
+        target: /app/backend/after_sales
+        read_only: true
+      - type: bind
+        source: ${AFTER_SALES_APP_ROOT}/skills
+        target: /app/after-sales-skills
+        read_only: true
+      - type: volume
+        source: business-data
+        target: /app/after-sales-data
+  frontend:
+    build:
+      args:
+        PNPM_STORE_PATH: /root/.local/share/pnpm/store
+    # Compile the pinned sources already copied into the image. Windows source
+    # binds plus polling stalled /workspace compilation on this machine.
+    # Rebuild and RestartFrontend after changing frontend source or assets.
+    environment:
+      WATCHPACK_POLLING: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DEER_FLOW_DEV_BUNDLER: ${AFTER_SALES_DEV_BUNDLER:-turbo}
+    volumes: !override
+      - type: bind
+        source: ${DEER_FLOW_ROOT}/frontend/next.config.js
+        target: /app/frontend/next.config.js
+        read_only: true
+      - type: bind
+        source: ${DEER_FLOW_ROOT}/logs
+        target: /app/logs
+      - type: volume
+        source: frontend-pnpm-store
+        target: /root/.local/share/pnpm/store
+
+volumes:
+  frontend-pnpm-store:
+  business-data:

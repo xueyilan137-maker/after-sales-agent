@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>售后工单工作台</title>
+  <style>
+    :root{--paper:#f5f3ec;--panel:#fffef9;--ink:#203b33;--muted:#6b756b;--line:#d9ded1;--accent:#d8723d;--soft:#edf1e8}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;line-height:1.6}
+    header{max-width:1440px;margin:auto;padding:32px 36px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .eyebrow{font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}h1{font-family:"Noto Serif CJK SC","Songti SC","SimSun",serif;font-size:32px;font-weight:600;margin:4px 0}h2{font-size:19px;margin:0 0 20px}h3{font-size:14px;margin:22px 0 8px}
+    p{margin:6px 0}a{color:var(--ink);text-underline-offset:4px}.nav{display:flex;gap:18px;align-items:center}.demo{color:#8d481f;border:1px solid #ddb596;padding:5px 10px;font-size:12px;border-radius:3px}
+    main{max-width:1440px;margin:0 auto;padding:28px 36px;display:grid;grid-template-columns:260px minmax(340px,1fr) 300px;gap:22px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:5px;min-width:0}.list{padding:0;list-style:none;margin:20px 0}.ticket-button{width:100%;background:transparent;text-align:left;padding:16px 10px;border:0;border-bottom:1px solid var(--line);border-left:3px solid transparent;border-radius:0}.ticket-button[aria-current=true]{border-left-color:var(--accent);background:var(--soft)}
+    .mono{font-family:Consolas,"Courier New",monospace;font-size:12px;letter-spacing:.02em;word-break:break-all}.muted{color:var(--muted)}.tiny{font-size:12px}.badge{display:inline-block;background:var(--soft);padding:3px 8px;border-radius:3px;font-size:12px}.badge.pending{background:#f9e7d7;color:#8c4920}.badge.done{background:#dceadb;color:#27573d}
+    button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:3px;cursor:pointer}button:hover{background:var(--soft)}button.primary{background:var(--ink);color:white;border-color:var(--ink)}button.primary:hover{background:#315347}button.danger{color:#994524}button:disabled{cursor:wait;opacity:.5}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #d7ab63;outline-offset:3px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}dl{display:grid;grid-template-columns:80px 1fr;gap:12px 14px;margin:22px 0}dt{color:var(--muted)}dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.evidence{background:var(--soft);border-left:3px solid var(--line);padding:14px;white-space:pre-wrap;overflow-wrap:anywhere}.proposal{border:1px solid var(--line);padding:18px;margin-top:20px}.amount{font-family:Georgia,serif;font-size:28px}.empty{padding:40px 0;color:var(--muted)}.empty strong{display:block;color:var(--ink);font-size:18px;margin-bottom:10px}.notice{max-width:1368px;margin:20px auto 0;padding:13px 18px;background:#fff0e1;border-left:3px solid var(--accent);white-space:pre-wrap;overflow-wrap:anywhere}.notice[hidden]{display:none}
+    label{display:block;font-size:13px;margin:14px 0 6px}input,textarea,select{font:inherit;width:100%;padding:9px;background:white;border:1px solid var(--line);color:var(--ink);border-radius:3px}textarea{resize:vertical;min-height:84px}input[type=checkbox]{width:auto;margin:0 8px 0 0}.check{display:flex;align-items:start;gap:4px}.timeline{padding:0;list-style:none}.timeline li{border-left:1px solid var(--line);padding:0 0 20px 17px;margin-left:4px;position:relative}.timeline li:before{content:"";position:absolute;left:-4px;top:8px;width:7px;height:7px;background:var(--accent);border-radius:50%}.timeline small{display:block;color:var(--muted)}footer{max-width:1440px;margin:auto;padding:20px 36px 35px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}dialog{max-width:560px;width:calc(100% - 30px);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:28px;border-radius:6px}dialog::backdrop{background:#19342c66}.hidden{display:none}
+    @media(max-width:1100px){main{grid-template-columns:230px 1fr}aside.review{grid-column:2}}@media(max-width:720px){header{padding:20px;align-items:start;flex-direction:column}h1{font-size:28px}main{padding:20px;grid-template-columns:1fr}.nav{flex-wrap:wrap}aside.review{grid-column:auto}footer{padding:20px}.notice{margin:15px 20px 0}}
+    @media(prefers-reduced-motion:no-preference){.panel{animation:appear .35s ease both}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}}
+    details{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}summary{cursor:pointer;font-weight:600}summary:focus-visible{outline:3px solid #d7ab63;outline-offset:3px}.attachment{border:1px solid var(--line);padding:14px;margin:12px 0}.attachment img{display:block;max-width:100%;max-height:200px;object-fit:contain;margin:10px 0}.clock-note{background:#fbeddc;border-left:3px solid var(--accent);padding:10px 13px;margin-bottom:18px}.memory-item{border-bottom:1px solid var(--line);padding:14px 0}.memory-item small{display:block;overflow-wrap:anywhere}.wide-dialog{max-width:720px}button:disabled{cursor:not-allowed}#more-tickets{width:100%;margin-bottom:12px}.lookup{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.lookup label{grid-column:1/-1;margin-bottom:0}
+  </style>
+</head>
+<body>
+<header>
+  <div><div class="eyebrow">After-sales / Case desk</div><h1>售后工单工作台</h1><p class="muted">把调查依据、人工决定与处理结果留在同一张工单里。</p></div>
+  <nav class="nav" aria-label="工作台导航"><span class="demo">合成演示数据</span><button id="open-memory">客户偏好</button><a href="/workspace/chats/new">返回 Agent 对话 ↗</a></nav>
+</header>
+<div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+<main>
+  <aside class="panel">
+    <div class="row"><h2 style="margin:0">工单</h2><button id="refresh" aria-label="刷新工单">刷新</button></div>
+    <p class="muted tiny">当前登录用户的损坏与物流申报</p><ul id="tickets" class="list"></ul><button id="more-tickets" hidden>加载更多工单</button><button id="new-report" class="primary" style="width:100%">记录售后申报</button>
+    <details open><summary>独立演示场景</summary><p class="tiny muted">每次创建新订单；已有申报和审批保留。场景业务时钟冻结，审批按真实时间过期。</p><label for="scenario">场景</label><select id="scenario"></select><p id="scenario-description" class="tiny muted"></p><button id="create-run" style="width:100%;margin-top:10px">创建独立演示订单</button><label for="saved-run">近期演示实例</label><select id="saved-run"><option value="">选择已有实例</option></select><button id="use-run" style="margin-top:10px">填写此实例的申报</button></details>
+    <p class="tiny muted" style="margin-top:20px">原订单 ORD-2026-0017 的新申报窗口截至 2026-10-15 14:30（+08:00）。</p>
+  </aside>
+  <section id="detail" class="panel" aria-label="工单详情"><div class="empty"><strong>选择一张工单</strong>可在 Agent 对话说明问题，或在这里接入资料。演示场景创建独立订单并保留全部历史。</div></section>
+  <aside class="panel review" aria-label="审批与处理"><div class="eyebrow">Human decision</div><h2>人工审核</h2><div id="review-area" class="muted">生成方案后，在此核对证据并审核。</div><h3>政策依据</h3><p><a href="/api/after-sales/policies/damage-demo-v1" target="_blank" rel="noopener">商品损坏政策 · 1.0.0 ↗</a></p><p><a href="/api/after-sales/policies/logistics-demo-v1" target="_blank" rel="noopener">物流异常政策 · 1.0.0 ↗</a></p><p class="muted tiny">项目编写的合成条款；图片由人工核验，未调用视觉模型。</p></aside>
+</main>
+<footer>本地演示业务：退款、补发和物流调查只创建演示记录，不发生真实付款、发货或承运方联系。</footer>
+<dialog id="report-dialog"><form id="report-form">
+  <div class="row"><h2 style="margin:0">记录 / 补充售后申报</h2><button type="button" id="close-dialog" aria-label="关闭申报窗口">×</button></div>
+  <div class="lookup"><label for="order">演示订单号</label><input id="order" name="order_id" value="ORD-2026-0017" maxlength="64" required><button type="button" id="lookup-order">读取已有资料</button></div><p id="report-context" class="tiny muted"></p>
+  <label for="case-kind">问题类型</label><select id="case-kind" name="case_kind"><option value="damage">商品损坏</option><option value="logistics">物流异常</option></select>
+  <label for="damage">问题描述</label><textarea id="damage" name="damage_description" maxlength="2000" placeholder="客户明确提供的损坏或物流异常情况"></textarea>
+  <label for="evidence">证据说明</label><textarea id="evidence" name="evidence_note" maxlength="2000" placeholder="客户陈述或附件说明；图片在保存工单后接入"></textarea>
+  <label for="resolution">本次处理偏好</label><select id="resolution" name="requested_resolution"></select>
+  <div class="actions"><button class="primary" type="submit">保存申报</button><button type="button" id="cancel-dialog">取消</button></div>
+</form></dialog>
+<dialog id="memory-dialog" class="wide-dialog"><div class="row"><h2 style="margin:0">客户偏好与确认来源</h2><button id="close-memory" aria-label="关闭客户偏好">×</button></div><p class="muted tiny">使用 DeerFlow 本地记忆后端。偏好供沟通参考，本次处理仍需客户确认。订单、期限、审批与执行以业务库为准。</p><div id="memory-list"></div>
+  <form id="memory-form"><label for="memory-key">偏好</label><select id="memory-key"><option value="resolution_preference">沟通中的处理倾向</option><option value="language">沟通语言</option><option value="contact_channel">沟通渠道</option></select><label for="memory-value">已确认的值</label><select id="memory-value"></select><label for="memory-source">人工确认来源 / 纠正说明</label><textarea id="memory-source" maxlength="500" required placeholder="记录何时、在哪次沟通中确认或纠正；不要填写密钥等信息"></textarea><button type="submit" class="primary" style="margin-top:14px">确认并保存偏好</button></form>
+</dialog>
+<script src="/api/after-sales/assets/workbench.js" defer></script>
+</body>
+</html>

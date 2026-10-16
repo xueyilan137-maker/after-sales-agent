@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "data_kind": "synthetic_demo_data",
+  "scenarios": [
+    {"scenario_id": "damage-in-window", "title": "签收后商品损坏", "case_kind": "damage", "business_time": "2026-10-12T10:00:00+08:00", "order": {}, "description": "新建独立订单；客户补充描述、证据和偏好后生成待人工审批方案。"},
+    {"scenario_id": "damage-late", "title": "超期损坏申报", "case_kind": "damage", "business_time": "2026-10-16T10:00:00+08:00", "order": {}, "description": "首次合成业务申报已超过七天，转人工处理。"},
+    {"scenario_id": "damage-high-value", "title": "高金额人工处理", "case_kind": "damage", "business_time": "2026-10-12T10:00:00+08:00", "order": {"paid_amount_minor": 24900}, "description": "超过损坏演示方案的金额限额，转人工处理。"},
+    {"scenario_id": "shipping-stalled", "title": "物流停滞调查", "case_kind": "logistics", "business_time": "2026-10-12T10:00:00+08:00", "order": {"status": "in_transit", "delivered_at": null, "shipping_events": [{"event_id": "SHIP-01", "occurred_at": "2026-10-07T09:00:00+08:00", "status": "collected", "description": "演示承运方已揽收"}, {"event_id": "SHIP-02", "occurred_at": "2026-10-08T09:00:00+08:00", "status": "in_transit", "description": "演示分拨中心中转，此后无更新"}]}, "description": "超过 72 小时无更新；人工批准后登记演示物流调查，等待人工跟进。"},
+    {"scenario_id": "shipping-disputed", "title": "签收状态与客户陈述冲突", "case_kind": "logistics", "business_time": "2026-10-12T10:00:00+08:00", "order": {"shipping_events": [{"event_id": "SHIP-03", "occurred_at": "2026-10-08T14:30:00+08:00", "status": "delivered", "description": "合成物流记录显示签收"}]}, "description": "客户反馈未收到时保留冲突，转人工，不自动退款或补发。"}
+  ]
+}

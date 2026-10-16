@@ -1,0 +1,28 @@
+# Local production-mode verification overlay, after compose.business.yaml.
+# Preserves the existing Gateway image, accounts, configuration and volumes.
+services:
+  nginx:
+    # Windows resolves localhost to ::1 first. Publish both loopbacks so
+    # clients need not wait for a refused IPv6 connection before IPv4.
+    ports: !override
+      - "127.0.0.1:${PORT:-2026}:2026"
+      - "[::1]:${PORT:-2026}:2026"
+  frontend:
+    image: after-sales-agent-frontend:production-check-20261014
+    command: ["sh", "-c", "cd /app/frontend && exec pnpm start > /app/logs/frontend.log 2>&1"]
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    mem_limit: 1g
+    cpus: 2
+    volumes: !override
+      - type: bind
+        source: ${DEER_FLOW_ROOT}/logs
+        target: /app/logs
+  gateway:
+    command: ["/app/backend/.venv/bin/python", "-m", "uvicorn", "app.gateway.app:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+    working_dir: /app/backend
+    environment:
+      PYTHONPATH: /app/backend
+    mem_limit: 3g
+    cpus: 2

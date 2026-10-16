@@ -1,0 +1,17 @@
+{
+  "policy_id": "damage-demo-v1",
+  "version": "1.0.0",
+  "effective_from": "2026-10-01",
+  "effective_until": null,
+  "title": "合成演示商品损坏处理政策",
+  "document": "damage-demo-v1.md",
+  "data_kind": "synthetic_demo_data",
+  "rules": {
+    "report_window_days": 7,
+    "automatic_proposal_amount_cap_minor": 20000,
+    "approval_ttl_hours": 24,
+    "required_fields": ["damage_description", "evidence_note", "requested_resolution"],
+    "allowed_resolutions": ["reship", "refund"],
+    "human_approval_required": true
+  }
+}

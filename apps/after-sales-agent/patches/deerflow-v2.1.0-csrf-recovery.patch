@@ -1,0 +1,199 @@
+diff --git a/backend/app/gateway/AGENTS.md b/backend/app/gateway/AGENTS.md
+index 1589aa2..5a2f260 100644
+--- a/backend/app/gateway/AGENTS.md
++++ b/backend/app/gateway/AGENTS.md
+@@ -27,6 +27,12 @@ CORS is same-origin by default when requests enter through nginx on port 2026. S
+ 
+ Browser auth sessions are owned by `app.gateway.auth.session_cookie`. Login accepts a `remember_me` form flag, but the Gateway never stores passwords. `SessionCookiePolicy` persists the `HttpOnly access_token` cookie only for HTTPS/trusted-forwarded HTTPS, direct-host localhost HTTP, or explicit operator opt-in for insecure persistence; public HTTP sandbox URLs degrade to session cookies. Session-creating handlers stamp the final `max_age` on `request.state`; CSRF cookie creation mirrors it so the double-submit pair expires together, including re-issue after password changes and OIDC callbacks. A small `HttpOnly` preference cookie preserves the remember choice across re-issues. Logout clears all auth cookies and suppresses CSRF re-issue on the logout response.
+ 
++Local after-sales adaptation: successful `GET /api/v1/auth/me` repairs a missing
++CSRF cookie only for an authenticated interactive session and an allowed origin.
++It follows the existing remember/session cookie policy and preserves an existing
++CSRF cookie. Mutations still require matching cookie/header tokens; no mutation
++is replayed by recovery. The maintained patch belongs to the after-sales app.
++
+ Personal Access Tokens (`app.gateway.auth.pat`, `Authorization: Bearer dfp_...`) run as their owning user: an invalid Bearer is a hard 401 with no cookie fallback, which keeps `CSRFMiddleware`'s Bearer skip safe (origin checks still run). Scopes narrow within the allowlisted threads/runs/projects routes (including `POST /api/threads/{id}/move`); every other authenticated route 403s PAT callers (admin included). PAT management and `/change-password` require session auth; only SHA-256 digests are stored (`0017`).
+ 
+ Thread→project membership is written by thread creation (`POST /api/threads` with
+diff --git a/backend/app/gateway/csrf_middleware.py b/backend/app/gateway/csrf_middleware.py
+index 01ef02e..ca309bb 100644
+--- a/backend/app/gateway/csrf_middleware.py
++++ b/backend/app/gateway/csrf_middleware.py
+@@ -16,7 +16,7 @@ from starlette.types import ASGIApp
+ 
+ from app.gateway.auth.config import get_auth_config
+ from app.gateway.auth.session_cookie_state import SESSION_COOKIE_ISSUED_STATE_ATTR, SESSION_COOKIE_MAX_AGE_STATE_ATTR, SESSION_COOKIE_SECURE_STATE_ATTR, SKIP_AUTH_CSRF_COOKIE_STATE_ATTR
+-from app.gateway.auth_disabled import is_auth_disabled
++from app.gateway.auth_disabled import AUTH_SOURCE_SESSION, is_auth_disabled
+ from app.gateway.request_path import get_request_route_path
+ from deerflow.trace_context import TRACE_ID_HEADER
+ 
+@@ -207,6 +207,13 @@ def auth_csrf_cookie_settings(request: Request) -> tuple[bool, int | None]:
+             getattr(request.state, SESSION_COOKIE_MAX_AGE_STATE_ATTR, None),
+         )
+ 
++    if getattr(request.state, "auth_source", None) == AUTH_SOURCE_SESSION:
++        # Imported lazily because the session policy imports our scheme helper.
++        from app.gateway.auth.session_cookie import resolve_session_cookie_policy
++
++        policy = resolve_session_cookie_policy(request)
++        return policy.secure, policy.max_age
++
+     secure = is_secure_request(request)
+     max_age = get_auth_config().token_expiry_days * 24 * 3600 if secure else None
+     return secure, max_age
+@@ -257,7 +264,15 @@ class CSRFMiddleware(BaseHTTPMiddleware):
+         # Session-creating handlers may stamp the final access-token max_age on
+         # request.state; mirroring it here keeps the double-submit cookie pair
+         # from diverging across HTTPS, localhost, and sandbox deployments.
+-        if _is_auth and request.method == "POST" and not getattr(request.state, SKIP_AUTH_CSRF_COOKIE_STATE_ATTR, False):
++        restore_missing_cookie = (
++            request.method == "GET"
++            and get_request_route_path(request).rstrip("/") == "/api/v1/auth/me"
++            and response.status_code == 200
++            and getattr(request.state, "auth_source", None) == AUTH_SOURCE_SESSION
++            and not request.cookies.get(CSRF_COOKIE_NAME)
++            and is_allowed_auth_origin(request)
++        )
++        if (_is_auth and request.method == "POST" and not getattr(request.state, SKIP_AUTH_CSRF_COOKIE_STATE_ATTR, False)) or restore_missing_cookie:
+             # Generate a new CSRF token for the session
+             csrf_token = generate_csrf_token()
+             secure, max_age = auth_csrf_cookie_settings(request)
+diff --git a/frontend/AGENTS.md b/frontend/AGENTS.md
+index 3850fd9..9efbe49 100644
+--- a/frontend/AGENTS.md
++++ b/frontend/AGENTS.md
+@@ -113,6 +113,14 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL=http://localhost:8001/api
+ 
+ Leave these unset for the standard `make dev` / Docker flow, where nginx serves the public `/api/langgraph/*` prefix and rewrites it to Gateway's native `/api/*` routes.
+ 
++Local after-sales adaptation: both REST fetches and the SDK's asynchronous
++`onRequest` hook await `ensureCsrfToken()` before a state-changing request.
++Missing-cookie recovery uses one shared authenticated GET `/api/v1/auth/me`,
++bounded to ten seconds, then reads the cookie again. Recovery does not replay
++mutations, log credentials, or expose tokens in response bodies. Static/SSR
++paths preserve their existing behavior. The maintained patch belongs to the
++after-sales app.
++
+ `make build-static` creates a standalone read-only demo and copies `.next/static`
+ and `public` into the output. In static mode, `core/api/static-response.ts`
+ resolves Gateway REST reads with empty capability/catalog responses or existing
+diff --git a/frontend/src/core/api/api-client.ts b/frontend/src/core/api/api-client.ts
+index bda9137..52a1ab4 100644
+--- a/frontend/src/core/api/api-client.ts
++++ b/frontend/src/core/api/api-client.ts
+@@ -11,7 +11,7 @@ import {
+ } from "../threads/static-demo";
+ import type { AgentThreadState } from "../threads/types";
+ 
+-import { isStateChangingMethod, readCsrfCookie } from "./fetcher";
++import { ensureCsrfToken, isStateChangingMethod } from "./fetcher";
+ import { forceChatRunStreamOptions } from "./stream-mode";
+ 
+ /**
+@@ -22,14 +22,17 @@ import { forceChatRunStreamOptions } from "./stream-mode";
+  * ``defaultHeaders`` at construction) handles login / logout / password
+  * change cookie rotation transparently. Both the ``/api/langgraph/*`` SDK
+  * path and the direct REST endpoints in ``fetcher.ts:fetchWithAuth``
+- * share :func:`readCsrfCookie` and :const:`STATE_CHANGING_METHODS` so
+- * the contract stays in lockstep.
++ * share the single-flight :func:`ensureCsrfToken` recovery and
++ * :const:`STATE_CHANGING_METHODS` so the contract stays in lockstep.
+  */
+-function injectCsrfHeader(_url: URL, init: RequestInit): RequestInit {
++async function injectCsrfHeader(
++  _url: URL,
++  init: RequestInit,
++): Promise<RequestInit> {
+   if (!isStateChangingMethod(init.method ?? "GET")) {
+     return init;
+   }
+-  const token = readCsrfCookie();
++  const token = await ensureCsrfToken();
+   if (!token) return init;
+   const headers = new Headers(init.headers);
+   if (!headers.has("X-CSRF-Token")) {
+diff --git a/frontend/src/core/api/fetcher.ts b/frontend/src/core/api/fetcher.ts
+index ba7eb7f..6118641 100644
+--- a/frontend/src/core/api/fetcher.ts
++++ b/frontend/src/core/api/fetcher.ts
+@@ -1,4 +1,5 @@
+ import { buildLoginUrl } from "@/core/auth/types";
++import { getBackendBaseURL } from "@/core/config";
+ import { isStaticWebsiteOnly } from "@/core/static-mode";
+ 
+ import { UnauthorizedError } from "./errors";
+@@ -26,13 +27,12 @@ const CSRF_COOKIE_PREFIX = "csrf_token=";
+  * SSR-safe: returns ``null`` when ``document`` is undefined so the same
+  * helper can be imported from server components without a guard.
+  *
+- * Uses `String.split` instead of a regex to side-step ESLint's
+- * `prefer-regexp-exec` rule and the cookie value's reliable `; `
+- * separator (set by the gateway, not the browser, so format is stable).
++ * Accept cookie separators with or without a following space.
+  */
+ export function readCsrfCookie(): string | null {
+   if (typeof document === "undefined") return null;
+-  for (const pair of document.cookie.split("; ")) {
++  for (const rawPair of document.cookie.split(";")) {
++    const pair = rawPair.trim();
+     if (pair.startsWith(CSRF_COOKIE_PREFIX)) {
+       return decodeURIComponent(pair.slice(CSRF_COOKIE_PREFIX.length));
+     }
+@@ -40,6 +40,47 @@ export function readCsrfCookie(): string | null {
+   return null;
+ }
+ 
++let csrfRecoveryRequest: Promise<string> | null = null;
++
++/** Recover a missing double-submit cookie before sending a mutation. */
++export async function ensureCsrfToken(): Promise<string | null> {
++  const existing = readCsrfCookie();
++  if (existing || typeof document === "undefined" || isStaticWebsiteOnly()) {
++    return existing;
++  }
++
++  if (!csrfRecoveryRequest) {
++    csrfRecoveryRequest = (async () => {
++      const response = await globalThis.fetch(
++        `${getBackendBaseURL()}/api/v1/auth/me`,
++        {
++          credentials: "include",
++          cache: "no-store",
++          signal: AbortSignal.timeout(10_000),
++        },
++      );
++      if (response.status === 401) {
++        window.location.href = buildLoginUrl(
++          `${window.location.pathname}${window.location.search}`,
++        );
++        throw new UnauthorizedError();
++      }
++      if (!response.ok) {
++        throw new Error("无法恢复会话校验令牌，请稍后重试或重新登录。");
++      }
++      const restored = readCsrfCookie();
++      if (!restored) {
++        throw new Error("浏览器未保存会话校验令牌，请允许本站 Cookie 后重新登录。");
++      }
++      return restored;
++    })().finally(() => {
++      csrfRecoveryRequest = null;
++    });
++  }
++
++  return csrfRecoveryRequest;
++}
++
+ /**
+  * Fetch with credentials and automatic CSRF protection.
+  *
+@@ -78,7 +119,7 @@ export async function fetch(
+   // it to mirror the gateway's ``should_check_csrf`` logic exactly.
+   let headers = init?.headers;
+   if (isStateChangingMethod(init?.method ?? "GET")) {
+-    const token = readCsrfCookie();
++    const token = await ensureCsrfToken();
+     if (token) {
+       // Fresh Headers instance so we don't mutate caller-supplied objects.
+       const merged = new Headers(headers);

@@ -1,0 +1,10 @@
+{
+  "policy_id": "logistics-demo-v1",
+  "version": "1.0.0",
+  "effective_from": "2026-10-01",
+  "effective_until": null,
+  "title": "合成演示物流异常处理政策",
+  "document": "logistics-demo-v1.md",
+  "data_kind": "synthetic_demo_data",
+  "rules": {"stalled_after_hours": 72, "approval_ttl_hours": 24, "required_fields": ["damage_description", "evidence_note"], "allowed_resolutions": ["carrier_inquiry"], "human_approval_required": true}
+}

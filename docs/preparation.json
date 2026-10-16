@@ -1,0 +1,31 @@
+{
+  "prepared_on": "2026-10-16",
+  "scope": "Pre-publication preparation snapshot; subsequent publication is recorded in Git history.",
+  "timezone": "Asia/Shanghai",
+  "repository": "independent local repository",
+  "branch": "codex/portfolio-preparation",
+  "upstream_commit": "345f08be00c8a9495079b732a39b46aa9af1584e",
+  "own_license": "MIT",
+  "checks": {
+    "offline_checkout_and_patch": "passed",
+    "repeated_bootstrap_preserves_checkout": "passed",
+    "example_setup_and_repeat": "passed",
+    "compose_config_quiet": "passed; no services started",
+    "release_guard_regressions": "8 passed in 0.253 seconds",
+    "archive_helper_local_stub": "4 scenarios passed",
+    "powershell_parse": "passed",
+    "source_scan": "passed",
+    "staged_scan": "passed",
+    "known_local_credential_comparison": "passed; 5 known private literal fields compared, no matches"
+  },
+  "not_performed": [
+    "fresh empty-cache dependency build and end-to-end installation",
+    "new business regression or live model request",
+    "commit, remote creation, push, PR, release or deployment"
+  ],
+  "limits": [
+    "Rules-based scanning is not a guarantee against every possible secret format.",
+    "Private raw evidence is excluded; public reports are operator-authored textual records.",
+    "Source and staged blob manifest excludes the manifest itself."
+  ]
+}

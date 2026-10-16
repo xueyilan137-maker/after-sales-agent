@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>非模型 MCP 验证</title>
+<style>body{max-width:960px;margin:40px auto;padding:20px;font:16px/1.7 system-ui}textarea{width:100%;box-sizing:border-box;font:14px/1.6 monospace}button,select{padding:10px;margin:8px 12px 8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f4f6;padding:20px}label{display:block}</style>
+<h1>非模型 MCP 验证</h1>
+<p>仅供已登录管理员进行第二层工程验证。调用固定 DeerFlow 加载器与签名 stdio MCP，不构造 Agent 或调用模型。所有业务操作均为合成演示；这里没有审批工具。</p>
+<a href="/api/after-sales/workbench">打开人工审批工作台</a>
+<button id="discover">发现工具与 schema</button>
+<label>业务工具 <select id="tool">
+<option>get_demo_order</option><option>search_damage_policy</option><option>search_after_sales_knowledge</option>
+<option>save_damage_report</option><option>save_logistics_report</option><option>get_shipping_events</option>
+<option>get_after_sales_ticket</option><option>propose_after_sales_resolution</option><option>execute_approved_resolution</option><option>get_customer_memory</option>
+</select></label>
+<label for="arguments">工具参数 JSON（不接受 owner、身份或签名）</label>
+<textarea id="arguments" rows="7">{"order_id":"ORD-2026-0017"}</textarea>
+<button id="invoke">调用 MCP 工具（无模型）</button>
+<pre id="result" aria-live="polite">尚未调用</pre>
+<script>
+const result=document.getElementById('result');
+async function send(path,body){
+  const headers={};
+  if(body){
+    await fetch('/api/v1/auth/me',{credentials:'same-origin'});
+    const token=document.cookie.split('; ').find(s=>s.startsWith('csrf_token='));
+    if(!token)throw Error('CSRF cookie 缺失，请刷新登录会话');
+    headers['X-CSRF-Token']=decodeURIComponent(token.slice('csrf_token='.length));headers['Content-Type']='application/json';
+  }
+  const response=await fetch('/api/after-sales/verification/'+path,{method:body?'POST':'GET',credentials:'same-origin',headers,...(body?{body:JSON.stringify(body)}:{})});
+  const payload=await response.json();result.textContent=JSON.stringify({http_status:response.status,...payload},null,2);
+}
+document.getElementById('discover').onclick=()=>send('tools').catch(e=>result.textContent=e.message);
+document.getElementById('invoke').onclick=async()=>{const b=document.getElementById('invoke');b.disabled=true;try{await send('invoke',{tool:document.getElementById('tool').value,arguments:JSON.parse(document.getElementById('arguments').value)});}catch(e){result.textContent=e.message;}finally{b.disabled=false;}};
+</script></html>
